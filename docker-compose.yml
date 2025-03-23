@@ -1,0 +1,13 @@
+version: "3.9"
+services:
+  backend:
+    image: krikati-backend:latest
+    build: .
+    ports:
+      - "3000:3000"
+    command: ["air", "-c", ".air.toml"]
+    develop:
+      watch:
+        - path: .
+          target: /app
+          action: sync
