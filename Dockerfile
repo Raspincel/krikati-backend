@@ -4,8 +4,6 @@ FROM golang:1.24.1-alpine
 # Set the working directory inside the container
 WORKDIR /app
 
-RUN go install github.com/air-verse/air@latest
-
 # Copy go.mod and go.sum files
 COPY go.mod go.sum ./
 
@@ -19,4 +17,4 @@ COPY . .
 EXPOSE 3000
 
 # Command to run the executable
-CMD ["air", "-c", ".air.toml"]
+CMD ["go", "run", "main.go"]
