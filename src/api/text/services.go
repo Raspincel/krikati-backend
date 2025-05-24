@@ -115,3 +115,10 @@ func (h *Handler) createTextService(data text, coverName, bucketID string) error
 
 	return err
 }
+
+func (h *Handler) getTextsService() ([]db.Text, error) {
+	texts := []db.Text{}
+	err := db.Database.Find(&texts)
+
+	return texts, err.Error
+}

@@ -52,5 +52,10 @@ func (h *Handler) RegisterRoutes() *http.ServeMux {
 			api.AuthMiddleware,
 		)))
 
+	r.HandleFunc("GET /", api.MultipleMiddleware(
+		h.get,
+		api.RecoveryMiddleware,
+	))
+
 	return r
 }
