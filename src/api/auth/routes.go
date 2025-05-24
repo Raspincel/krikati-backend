@@ -27,14 +27,26 @@ func (h *Handler) RegisterRoutes() *http.ServeMux {
 		h.register,
 		api.RecoveryMiddleware,
 		h.emailInIuseMiddleware,
+		api.CORSMiddleware,
 	)))
+
+	r.HandleFunc("OPTIONS /register", api.MultipleMiddleware(
+		func(w http.ResponseWriter, r *http.Request) {},
+		api.CORSMiddleware,
+	))
 
 	r.HandleFunc("POST /login", api.ValidateSchemaMiddleware[admin](api.MultipleMiddleware(
 		h.login,
 		api.RecoveryMiddleware,
 		h.accountExistsMiddleware,
 		h.isPasswordValidMiddleware,
+		api.CORSMiddleware,
 	)))
+
+	r.HandleFunc("OPTIONS /login", api.MultipleMiddleware(
+		func(w http.ResponseWriter, r *http.Request) {},
+		api.CORSMiddleware,
+	))
 
 	return r
 }

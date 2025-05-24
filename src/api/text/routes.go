@@ -50,11 +50,18 @@ func (h *Handler) RegisterRoutes() *http.ServeMux {
 			h.create,
 			api.RecoveryMiddleware,
 			api.AuthMiddleware,
+			api.CORSMiddleware,
 		)))
+
+	r.HandleFunc("OPTIONS /", api.MultipleMiddleware(
+		func(w http.ResponseWriter, r *http.Request) {},
+		api.CORSMiddleware,
+	))
 
 	r.HandleFunc("GET /", api.MultipleMiddleware(
 		h.get,
 		api.RecoveryMiddleware,
+		api.CORSMiddleware,
 	))
 
 	return r

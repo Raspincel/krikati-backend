@@ -95,11 +95,23 @@ func (h *Handler) RegisterRoutes() *http.ServeMux {
 			api.RecoveryMiddleware,
 			api.AuthMiddleware,
 			h.categoryExistsMiddleware,
+			api.CORSMiddleware,
 		)))
+
+	r.HandleFunc("OPTIONS /new", api.MultipleMiddleware(
+		func(w http.ResponseWriter, r *http.Request) {},
+		api.CORSMiddleware,
+	))
 
 	r.HandleFunc("GET /all", api.MultipleMiddleware(
 		h.get,
 		api.RecoveryMiddleware,
+		api.CORSMiddleware,
+	))
+
+	r.HandleFunc("OPTIONS /all", api.MultipleMiddleware(
+		func(w http.ResponseWriter, r *http.Request) {},
+		api.CORSMiddleware,
 	))
 
 	r.HandleFunc("POST /attachment/{id}", api.ValidateMultipartSchemaMiddleware[addAttachment](
@@ -109,20 +121,38 @@ func (h *Handler) RegisterRoutes() *http.ServeMux {
 			api.RecoveryMiddleware,
 			api.AuthMiddleware,
 			h.wordExistMiddleware,
+			api.CORSMiddleware,
 		)))
+
+	r.HandleFunc("OPTIONS /attachment/{id}", api.MultipleMiddleware(
+		func(w http.ResponseWriter, r *http.Request) {},
+		api.CORSMiddleware,
+	))
 
 	r.HandleFunc("PUT /details/{id}", api.ValidateSchemaMiddleware[updateWord](api.MultipleMiddleware(
 		h.update,
 		api.RecoveryMiddleware,
 		api.AuthMiddleware,
 		h.wordExistMiddleware,
+		api.CORSMiddleware,
 	)))
+
+	r.HandleFunc("OPTIONS /details/{id}", api.MultipleMiddleware(
+		func(w http.ResponseWriter, r *http.Request) {},
+		api.CORSMiddleware,
+	))
 
 	r.HandleFunc("DELETE /attachment/{id}", api.MultipleMiddleware(
 		h.deleteAttachment,
 		api.RecoveryMiddleware,
 		api.AuthMiddleware,
 		h.attachmentExistsMiddleware,
+		api.CORSMiddleware,
+	))
+
+	r.HandleFunc("OPTIONS /attachment/{id}", api.MultipleMiddleware(
+		func(w http.ResponseWriter, r *http.Request) {},
+		api.CORSMiddleware,
 	))
 
 	r.HandleFunc("PUT /attachment/{id}", api.ValidateSchemaMiddleware[updateAttachment](
@@ -131,7 +161,13 @@ func (h *Handler) RegisterRoutes() *http.ServeMux {
 			api.RecoveryMiddleware,
 			api.AuthMiddleware,
 			h.attachmentExistsMiddleware,
+			api.CORSMiddleware,
 		),
+	))
+
+	r.HandleFunc("OPTIONS /attachment/{id}", api.MultipleMiddleware(
+		func(w http.ResponseWriter, r *http.Request) {},
+		api.CORSMiddleware,
 	))
 
 	return r
