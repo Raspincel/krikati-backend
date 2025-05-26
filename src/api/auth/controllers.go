@@ -10,7 +10,7 @@ import (
 func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 	adm := r.Context().Value("body").(admin)
 
-	err := createAdmin(adm.Email, adm.Password)
+	err := createAdmin(adm.Name, adm.Email, adm.Password)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

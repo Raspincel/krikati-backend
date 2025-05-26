@@ -7,13 +7,13 @@ import (
 	"gorm.io/gorm"
 )
 
-func createAdmin(email, password string) error {
+func createAdmin(name, email, password string) error {
 	pass, err := api.HashPassword(password)
 	if err != nil {
 		return err
 	}
 
-	admin := &db.Admin{Email: email, Password: pass}
+	admin := &db.Admin{Name: name, Email: email, Password: pass}
 
 	err = db.Database.Transaction(func(tx *gorm.DB) error {
 		return tx.Create(admin).Error

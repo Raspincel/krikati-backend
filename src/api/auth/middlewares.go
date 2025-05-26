@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"fmt"
 	"krikati/src/api"
 	"krikati/src/db"
 	"net/http"
@@ -25,13 +24,10 @@ func (h *Handler) emailInIuseMiddleware(next http.HandlerFunc) http.HandlerFunc 
 
 func (h *Handler) accountExistsMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("a")
 		body := r.Context().Value("body").(admin)
 
 		var admin db.Admin
-		fmt.Println("oxi", body.Email)
 		exists := db.Database.First(&admin, "email = ?", body.Email)
-		fmt.Println("hm", exists.Error)
 
 		if exists.Error != nil {
 			http.Error(w, "{\"message\":\"Account registered with this email does not exist\"}", http.StatusBadRequest)

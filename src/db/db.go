@@ -13,6 +13,7 @@ var Database *gorm.DB
 
 type Admin struct {
 	ID       uint   `gorm:"primarykey" json:"id"`
+	Name     string `json:"name" gorm:"unique"`
 	Email    string `json:"email" gorm:"unique"`
 	Password string `json:"password"`
 
@@ -81,7 +82,7 @@ func Connect() {
 	pgDb.SetMaxIdleConns(10)
 	pgDb.SetConnMaxLifetime(0)
 
-	// err = d.AutoMigrate(&Admin{}, &Category{}, &Word{}, &Attachment{}, &Text{})
+	err = d.AutoMigrate(&Admin{}, &Category{}, &Word{}, &Attachment{}, &Text{})
 	// fmt.Println("err", err)
 
 	fmt.Println("Connected to database")
