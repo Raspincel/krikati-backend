@@ -8,7 +8,7 @@ import (
 )
 
 func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
-	adm := r.Context().Value("body").(admin)
+	adm := r.Context().Value("body").(adminRegister)
 
 	err := createAdmin(adm.Name, adm.Email, adm.Password)
 
@@ -21,7 +21,7 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
-	adm := r.Context().Value("body").(admin)
+	adm := r.Context().Value("body").(adminLogin)
 
 	token := jwt.New(jwt.SigningMethodHS256)
 	token.EncodeSegment([]byte(adm.Email))

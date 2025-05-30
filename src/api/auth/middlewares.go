@@ -9,7 +9,7 @@ import (
 
 func (h *Handler) emailInIuseMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body := r.Context().Value("body").(admin)
+		body := r.Context().Value("body").(adminRegister)
 
 		exists := db.Database.First(&db.Admin{}, "email = ?", body.Email)
 
@@ -24,7 +24,7 @@ func (h *Handler) emailInIuseMiddleware(next http.HandlerFunc) http.HandlerFunc 
 
 func (h *Handler) accountExistsMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body := r.Context().Value("body").(admin)
+		body := r.Context().Value("body").(adminLogin)
 
 		var admin db.Admin
 		exists := db.Database.First(&admin, "email = ?", body.Email)
@@ -43,7 +43,7 @@ func (h *Handler) accountExistsMiddleware(next http.HandlerFunc) http.HandlerFun
 
 func (h *Handler) isPasswordValidMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body := r.Context().Value("body").(admin)
+		body := r.Context().Value("body").(adminLogin)
 		adm := r.Context().Value("adm").(db.Admin)
 
 		isEqual := api.VerifyPassword(body.Password, adm.Password)

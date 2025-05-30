@@ -11,20 +11,29 @@ func NewHandler() *Handler {
 	return &Handler{}
 }
 
-type admin struct {
+type adminRegister struct {
 	Name     string `json:"name" validate:"required"`
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required"`
 }
 
-func (h admin) IsEmpty() bool {
+type adminLogin struct {
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required"`
+}
+
+func (h adminRegister) IsEmpty() bool {
+	return h.Email == "" && h.Password == ""
+}
+
+func (h adminLogin) IsEmpty() bool {
 	return h.Email == "" && h.Password == ""
 }
 
 func (h *Handler) RegisterRoutes() *http.ServeMux {
 	r := http.NewServeMux()
 
-	r.HandleFunc("POST /register", api.ValidateSchemaMiddleware[admin](api.MultipleMiddleware(
+	r.HandleFunc("POST /register", api.ValidateSchemaMiddleware[adminRegister](api.MultipleMiddleware(
 		h.register,
 		api.RecoveryMiddleware,
 		h.emailInIuseMiddleware,
@@ -36,7 +45,7 @@ func (h *Handler) RegisterRoutes() *http.ServeMux {
 		api.CORSMiddleware,
 	))
 
-	r.HandleFunc("POST /login", api.ValidateSchemaMiddleware[admin](api.MultipleMiddleware(
+	r.HandleFunc("POST /login", api.ValidateSchemaMiddleware[adminLogin](api.MultipleMiddleware(
 		h.login,
 		api.RecoveryMiddleware,
 		h.accountExistsMiddleware,
