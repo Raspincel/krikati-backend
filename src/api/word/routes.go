@@ -150,11 +150,6 @@ func (h *Handler) RegisterRoutes() *http.ServeMux {
 		api.CORSMiddleware,
 	))
 
-	r.HandleFunc("OPTIONS /attachment/{id}", api.MultipleMiddleware(
-		func(w http.ResponseWriter, r *http.Request) {},
-		api.CORSMiddleware,
-	))
-
 	r.HandleFunc("PUT /attachment/{id}", api.ValidateSchemaMiddleware[updateAttachment](
 		api.MultipleMiddleware(
 			h.updateAttachment,
@@ -163,11 +158,6 @@ func (h *Handler) RegisterRoutes() *http.ServeMux {
 			h.attachmentExistsMiddleware,
 			api.CORSMiddleware,
 		),
-	))
-
-	r.HandleFunc("OPTIONS /attachment/{id}", api.MultipleMiddleware(
-		func(w http.ResponseWriter, r *http.Request) {},
-		api.CORSMiddleware,
 	))
 
 	return r
