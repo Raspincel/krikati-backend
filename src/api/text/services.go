@@ -34,16 +34,15 @@ func (h *Handler) uploadFilesService(cover *multipart.FileHeader) (string, strin
 		}
 	}
 
-	fmt.Println("lol", cover)
 	f, err := cover.Open()
-	defer f.Close()
 
 	if err != nil {
 		fmt.Println("Error opening file", err)
 		return "", "", err
 	}
 
-	fmt.Println("lmao")
+	defer f.Close()
+
 	buffer := make([]byte, 512)
 	_, err = f.Read(buffer)
 	if err != nil {
@@ -79,17 +78,23 @@ func (h *Handler) uploadFilesService(cover *multipart.FileHeader) (string, strin
 	}
 
 	tempFile, err := os.CreateTemp("", "file-*."+extension)
-	defer tempFile.Close()
 
 	if err != nil {
 		fmt.Println("Error creating file", err)
 		return "", "", err
 	}
 
+	defer tempFile.Close()
+
 	os.WriteFile(tempFile.Name(), bytesContainer, 0644)
 
 	name := strings.TrimPrefix(tempFile.Name(), "/tmp/")
-	_, err = db.Storage.Storage.UploadFile(bucket.Id, name, tempFile, storage_go.FileOptions{
+	client := db.InitializeStorage()
+	if client == nil {
+		fmt.Println("Storage client is not initialized")
+		return "", "", fmt.Errorf("storage client is not initialized")
+	}
+	_, err = client.Storage.UploadFile(bucket.Id, name, tempFile, storage_go.FileOptions{
 		ContentType: &contentType,
 	})
 
@@ -101,19 +106,17 @@ func (h *Handler) uploadFilesService(cover *multipart.FileHeader) (string, strin
 	return name, bucket.Id, nil
 }
 
-func (h *Handler) createTextService(data text, coverName, bucketID string) error {
-	err := db.Database.Transaction(func(tx *gorm.DB) error {
-		err := tx.Create(&db.Text{
-			Title:    data.Title,
-			Subtitle: data.Subtitle,
-			Content:  data.Content,
-			CoverURL: db.Storage.Storage.GetPublicUrl(bucketID, coverName).SignedURL,
-		})
+func (h *Handler) createTextService(data text, coverName, bucketID string) (db.Text, error) {
+	text := db.Text{
+		Title:    data.Title,
+		Subtitle: data.Subtitle,
+		Content:  data.Content,
+		CoverURL: db.Storage.Storage.GetPublicUrl(bucketID, coverName).SignedURL,
+	}
 
-		return err.Error
-	})
+	err := db.Database.Create(&text)
 
-	return err
+	return text, err.Error
 }
 
 func (h *Handler) getTextsService() ([]db.Text, error) {
@@ -121,4 +124,110 @@ func (h *Handler) getTextsService() ([]db.Text, error) {
 	err := db.Database.Find(&texts)
 
 	return texts, err.Error
+}
+
+func (h *Handler) deleteTextService(id uint) error {
+
+	err := db.Database.Transaction(func(tx *gorm.DB) error {
+		var text db.Text
+		err := tx.First(&text, "id = ?", id).Error
+		if err != nil {
+			return err
+		}
+
+		// Try to remove the file
+		err = h.removeFileService(text.CoverURL)
+
+		if err != nil {
+			return fmt.Errorf("failed to remove cover file: %w", err)
+		}
+
+		dbErr := tx.Delete(&text).Error
+		return dbErr
+	})
+
+	return err
+}
+
+func (h *Handler) replaceFileService(id string, file *multipart.FileHeader) error {
+	if file == nil {
+		return nil
+	}
+
+	coverName, bucketID, err := h.uploadFilesService(file)
+	if err != nil {
+		return err
+	}
+
+	err = db.Database.Transaction(func(tx *gorm.DB) error {
+		var text db.Text
+		err := tx.First(&text, "id = ?", id).Error
+		if err != nil {
+			return err
+		}
+
+		err = h.removeFileService(text.CoverURL)
+
+		if err != nil {
+			err = h.removeFileService(coverName)
+			if err != nil {
+				return fmt.Errorf("failed to remove new cover file after failure: %w", err)
+			}
+			return fmt.Errorf("failed to remove old cover file: %w", err)
+		}
+
+		text.CoverURL = db.Storage.Storage.GetPublicUrl(bucketID, coverName).SignedURL
+		return tx.Save(&text).Error
+	})
+
+	return err
+}
+
+func (h *Handler) removeFileService(coverURL string) error {
+
+	if coverURL == "" {
+		return fmt.Errorf("cover url cannot be empty")
+	}
+
+	parts := strings.Split(coverURL, "/")
+	fileName := parts[len(parts)-1]
+
+	if strings.Contains(fileName, "?") {
+		fileName = strings.Split(fileName, "?")[0]
+	}
+
+	client := db.InitializeStorage()
+	if client == nil {
+		return fmt.Errorf("storage client is not initialized")
+	}
+	_, err := client.Storage.RemoveFile("texts_covers", []string{fileName})
+
+	if err != nil {
+		return fmt.Errorf("failed to remove file: %w", err)
+	}
+
+	return nil
+}
+
+func (h *Handler) updateTextService(id string, data updateText) (db.Text, error) {
+	var text db.Text
+
+	err := db.Database.Transaction(func(tx *gorm.DB) error {
+		err := tx.First(&text, "id = ?", id).Error
+		if err != nil {
+			return err
+		}
+
+		text.Title = data.Title
+		text.Subtitle = data.Subtitle
+		text.Content = data.Content
+
+		return tx.Save(&text).Error
+	})
+
+	if err != nil {
+		fmt.Println("Error updating text:", err)
+	}
+
+	return text, err
 }

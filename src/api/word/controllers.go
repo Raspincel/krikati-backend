@@ -9,7 +9,7 @@ func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
 	body := r.Context().Value("body").(word)
 
 	bucketID, files := h.uploadFilesService(body.Attachments)
-	err := h.createWordService(bucketID, files, body)
+	word, err := h.createWordService(bucketID, files, body)
 
 	if err != nil {
 		h.deleteFilesService(files)
@@ -17,8 +17,16 @@ func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	wordJson, err := json.Marshal(word)
+
+	if err != nil {
+		http.Error(w, "{\"message\":\""+err.Error()+"\"}", http.StatusInternalServerError)
+		return
+	}
+
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte("{\"message\":\"Word created\"}"))
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(wordJson)
 }
 
 func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
@@ -44,7 +52,7 @@ func (h *Handler) addAttachment(w http.ResponseWriter, r *http.Request) {
 
 	bucketID, files := h.uploadFilesService(body.attachments)
 
-	err := h.addAttachmentService(id, bucketID, files)
+	attachments, err := h.addAttachmentService(id, bucketID, files)
 
 	if err != nil {
 		h.deleteFilesService(files)
@@ -52,23 +60,36 @@ func (h *Handler) addAttachment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	attachmentsJson, err := json.Marshal(attachments)
+	if err != nil {
+		http.Error(w, "{\"message\":\""+err.Error()+"\"}", http.StatusInternalServerError)
+		return
+	}
+
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte("{\"message\":\"Word created\"}"))
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(attachmentsJson)
 }
 
 func (h *Handler) update(w http.ResponseWriter, r *http.Request) {
 	id := r.Context().Value("word_id").(string)
 	body := r.Context().Value("body").(updateWord)
 
-	err := h.updateWordService(id, body.Name, body.Meaning)
+	word, err := h.updateWordService(id, body.Name, body.Meaning)
 
 	if err != nil {
 		http.Error(w, "{\"message\":\""+err.Error()+"\"}", http.StatusInternalServerError)
 		return
 	}
 
+	wordJson, err := json.Marshal(word)
+	if err != nil {
+		http.Error(w, "{\"message\":\""+err.Error()+"\"}", http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte("{\"message\":\"Word updated\"}"))
+	w.WriteHeader(http.StatusOK)
+	w.Write(wordJson)
 }
 
 func (h *Handler) deleteAttachment(w http.ResponseWriter, r *http.Request) {
@@ -87,7 +108,28 @@ func (h *Handler) updateAttachment(w http.ResponseWriter, r *http.Request) {
 	id := r.Context().Value("attachment_id").(string)
 	body := r.Context().Value("body").(updateAttachment)
 
-	err := h.updateAttachmentService(id, body.Source)
+	attachment, err := h.updateAttachmentService(id, body.Source)
+
+	if err != nil {
+		http.Error(w, "{\"message\":\""+err.Error()+"\"}", http.StatusInternalServerError)
+		return
+	}
+
+	attachmentJson, err := json.Marshal(attachment)
+	if err != nil {
+		http.Error(w, "{\"message\":\""+err.Error()+"\"}", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(attachmentJson)
+}
+
+func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {
+	id := r.Context().Value("word_id").(string)
+
+	err := h.deleteWordService(id)
 
 	if err != nil {
 		http.Error(w, "{\"message\":\""+err.Error()+"\"}", http.StatusInternalServerError)
@@ -95,5 +137,5 @@ func (h *Handler) updateAttachment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("{\"message\":\"Attachment updated\"}"))
+	w.Write([]byte("{\"message\":\"Word deleted\"}"))
 }

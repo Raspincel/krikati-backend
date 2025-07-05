@@ -9,7 +9,7 @@ import (
 
 var Storage *supabase.Client
 
-func InitializeStorage() {
+func InitializeStorage() *supabase.Client {
 	apiURL := env.Get("SUPABASE_API_URL", "")
 	apiKey := env.Get("SUPABASE_API_KEY", "")
 	// supabaseEmail := env.Get("SUPABASE_EMAIL", "")
@@ -25,6 +25,5 @@ func InitializeStorage() {
 	}
 
 	Storage = client
-
-	// client.SignInWithEmailPassword(supabaseEmail, supabasePassword)
+	return client
 }

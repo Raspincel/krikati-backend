@@ -123,13 +123,14 @@ func (h Handler) deleteFilesService(files []attachment) {
 	}
 }
 
-func (h Handler) createWordService(bucketID string, files []attachment, body word) error {
+func (h Handler) createWordService(bucketID string, files []attachment, body word) (db.Word, error) {
+	w := db.Word{
+		Word:       body.Name,
+		Meaning:    body.Meaning,
+		CategoryID: body.CategoryID,
+	}
+
 	err := db.Database.Transaction(func(tx *gorm.DB) error {
-		w := db.Word{
-			Word:       body.Name,
-			Meaning:    body.Meaning,
-			CategoryID: body.CategoryID,
-		}
 
 		err := tx.Create(&w)
 
@@ -152,7 +153,7 @@ func (h Handler) createWordService(bucketID string, files []attachment, body wor
 		return err.Error
 	})
 
-	return err
+	return w, err
 }
 
 type full_attachment struct {
@@ -223,25 +224,39 @@ func (h Handler) getWordsService() map[string][]full_data {
 	return d
 }
 
-func (h Handler) updateWordService(id, name, meaning string) error {
-	newData := map[string]any{}
-
-	if name != "" {
-		newData["word"] = name
-	}
-
-	if meaning != "" {
-		newData["meaning"] = meaning
-	}
+func (h Handler) updateWordService(id, name, meaning string) (db.Word, error) {
+	var word db.Word
 
 	err := db.Database.Transaction(func(tx *gorm.DB) error {
-		return tx.Model(&db.Word{}).Where("id = ?", id).Updates(newData).Error
+		err := tx.First(&word, "id = ?", id).Error
+		if err != nil {
+			if err == gorm.ErrRecordNotFound {
+				return fmt.Errorf("word with ID %s not found", id)
+			}
+			return fmt.Errorf("error finding word: %w", err)
+		}
+
+		if name != "" {
+			word.Word = name
+		}
+
+		if meaning != "" {
+			word.Meaning = meaning
+		}
+
+		err = tx.Save(&word).Error
+		if err != nil {
+			return fmt.Errorf("error updating word: %w", err)
+		}
+
+		return nil
 	})
 
-	return err
+	return word, err
 }
 
-func (h Handler) addAttachmentService(id, bucketID string, files []attachment) error {
+func (h Handler) addAttachmentService(id, bucketID string, files []attachment) ([]db.Attachment, error) {
+	attachments := []db.Attachment{}
 	err := db.Database.Transaction(func(tx *gorm.DB) error {
 		word := db.Word{}
 		err := tx.Where("id = ?", id).First(&word).Error
@@ -249,8 +264,6 @@ func (h Handler) addAttachmentService(id, bucketID string, files []attachment) e
 		if err != nil {
 			return err
 		}
-
-		attachments := []db.Attachment{}
 
 		for _, f := range files {
 			attachments = append(attachments, db.Attachment{
@@ -265,11 +278,42 @@ func (h Handler) addAttachmentService(id, bucketID string, files []attachment) e
 		return err
 	})
 
-	return err
+	return attachments, err
 }
 
 func (h Handler) deleteAttachmentService(id string) error {
-	err := db.Database.Transaction(func(tx *gorm.DB) error {
+	var attachment db.Attachment
+	err := db.Database.First(&attachment, "id = ?", id).Error
+
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return fmt.Errorf("attachment with ID %s not found", id)
+		}
+		return fmt.Errorf("error finding attachment: %w", err)
+	}
+
+	// Delete the file from storage
+	fmt.Println("attachment bah", attachment)
+	if attachment.URL != "" {
+
+		client := db.InitializeStorage()
+		bucket, err := client.Storage.GetBucket("attachments")
+		if err != nil {
+			return fmt.Errorf("error getting bucket: %w", err)
+		}
+
+		parts := strings.Split(attachment.URL, "/")
+		fileName := parts[len(parts)-1]
+
+		_, err = client.Storage.RemoveFile(bucket.Id, []string{fileName})
+
+		if err != nil {
+			return fmt.Errorf("error deleting file from storage: %w", err)
+		}
+	}
+
+	err = db.Database.Transaction(func(tx *gorm.DB) error {
+
 		err := tx.Delete(db.Attachment{}, id)
 
 		return err.Error
@@ -278,11 +322,72 @@ func (h Handler) deleteAttachmentService(id string) error {
 	return err
 }
 
-func (h Handler) updateAttachmentService(id, source string) error {
-	err := db.Database.Transaction(func(tx *gorm.DB) error {
-		err := tx.Model(&db.Attachment{}).Where("id = ?", id).Update("source", source)
+func (h Handler) updateAttachmentService(id, source string) (db.Attachment, error) {
+	var attachment db.Attachment
 
-		return err.Error
+	err := db.Database.Transaction(func(tx *gorm.DB) error {
+		err := tx.First(&attachment, "id = ?", id).Error
+		if err != nil {
+			if err == gorm.ErrRecordNotFound {
+				return fmt.Errorf("attachment with ID %s not found", id)
+			}
+			return fmt.Errorf("error finding attachment: %w", err)
+		}
+
+		if source != "" {
+			attachment.Source = source
+		}
+
+		err = tx.Save(&attachment).Error
+		if err != nil {
+			return fmt.Errorf("error updating attachment: %w", err)
+		}
+
+		return nil
+	})
+
+	return attachment, err
+}
+
+func (h Handler) deleteWordService(id string) error {
+	wordID, err := strconv.Atoi(id)
+	if err != nil {
+		return fmt.Errorf("invalid word ID: %w", err)
+	}
+
+	err = db.Database.Transaction(func(tx *gorm.DB) error {
+		var word db.Word
+		err := tx.First(&word, "id = ?", wordID).Error
+		if err != nil {
+			return fmt.Errorf("word not found: %w", err)
+		}
+
+		fmt.Println("word id", wordID)
+
+		// Delete attachments associated with the word
+		var attachments []db.Attachment
+		err = tx.Where("word_id = ?", wordID).Find(&attachments).Error
+		if err != nil {
+			return fmt.Errorf("failed to find attachments: %w", err)
+		}
+
+		fmt.Println("attachments", len(attachments))
+
+		for _, attachment := range attachments {
+			fmt.Println("what", attachment)
+			err = h.deleteAttachmentService(strconv.Itoa(int(attachment.ID)))
+
+			if err != nil {
+				return fmt.Errorf("failed to delete attachment %d: %w", attachment.ID, err)
+			}
+		}
+
+		err = tx.Delete(&word).Error
+		if err != nil {
+			return fmt.Errorf("failed to delete word: %w", err)
+		}
+
+		return nil
 	})
 
 	return err

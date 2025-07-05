@@ -59,5 +59,13 @@ func (h *Handler) RegisterRoutes() *http.ServeMux {
 		api.CORSMiddleware,
 	))
 
+	r.HandleFunc("DELETE /{id}", api.MultipleMiddleware(
+		h.delete,
+		api.RecoveryMiddleware,
+		api.AuthMiddleware,
+		h.categoryExistsMiddleware,
+		api.CORSMiddleware,
+	))
+
 	return r
 }
