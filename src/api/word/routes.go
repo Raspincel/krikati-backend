@@ -175,5 +175,11 @@ func (h *Handler) RegisterRoutes() *http.ServeMux {
 		api.CORSMiddleware,
 	))
 
+	// Add OPTIONS handler for the delete route
+	r.HandleFunc("OPTIONS /{id}", api.MultipleMiddleware(
+		func(w http.ResponseWriter, r *http.Request) {},
+		api.CORSMiddleware,
+	))
+
 	return r
 }
