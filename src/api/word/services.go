@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	storage_go "github.com/supabase-community/storage-go"
 	"gorm.io/gorm"
@@ -123,7 +124,17 @@ func (h Handler) deleteFilesService(files []attachment) {
 	}
 }
 
-func (h Handler) createWordService(bucketID string, files []attachment, body word) (db.Word, error) {
+type fullWord struct {
+	ID          uint            `json:"id"`
+	Word        string          `json:"word"`
+	Meaning     string          `json:"meaning"`
+	Category    db.Category     `json:"category"`
+	Attachments []db.Attachment `json:"attachments,omitempty"`
+	Translation string          `json:"translation,omitempty"`
+	CreatedAt   time.Time       `json:"created_at,omitempty"`
+}
+
+func (h Handler) createWordService(bucketID string, files []attachment, body word) (fullWord, error) {
 	w := db.Word{
 		Word:        body.Name,
 		Meaning:     body.Meaning,
@@ -154,7 +165,39 @@ func (h Handler) createWordService(bucketID string, files []attachment, body wor
 		return err.Error
 	})
 
-	return w, err
+	if err != nil {
+		return fullWord{}, fmt.Errorf("error creating word: %s", err.Error())
+	}
+
+	var category db.Category
+	err = db.Database.First(&category, "id = ?", w.CategoryID).Error
+
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return fullWord{}, fmt.Errorf("category with ID %d not found", w.CategoryID)
+		}
+		return fullWord{}, fmt.Errorf("error finding category: %w", err)
+	}
+
+	var attachments []db.Attachment
+
+	err = db.Database.Model(&db.Attachment{}).Where("word_id = ?", w.ID).Select("id", "url", "source").Find(&attachments).Error
+
+	if err != nil {
+		return fullWord{}, fmt.Errorf("error finding attachments: %w", err)
+	}
+
+	fullWord := fullWord{
+		ID:          w.ID,
+		Word:        w.Word,
+		Meaning:     w.Meaning,
+		Category:    category,
+		Translation: w.Translation,
+		CreatedAt:   w.CreatedAt,
+		Attachments: attachments,
+	}
+
+	return fullWord, err
 }
 
 type full_attachment struct {
@@ -225,7 +268,7 @@ func (h Handler) getWordsService() map[string][]full_data {
 	return d
 }
 
-func (h Handler) updateWordService(id string, w updateWord) (db.Word, error) {
+func (h Handler) updateWordService(id string, w updateWord) (fullWord, error) {
 	var word db.Word
 
 	err := db.Database.Transaction(func(tx *gorm.DB) error {
@@ -256,7 +299,40 @@ func (h Handler) updateWordService(id string, w updateWord) (db.Word, error) {
 		return nil
 	})
 
-	return word, err
+	if err != nil {
+		return fullWord{}, fmt.Errorf("error updating word: %s", err.Error())
+	}
+
+	var category db.Category
+
+	err = db.Database.First(&category, "id = ?", word.CategoryID).Error
+
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return fullWord{}, fmt.Errorf("category with ID %d not found", word.CategoryID)
+		}
+		return fullWord{}, fmt.Errorf("error finding category: %w", err)
+	}
+
+	var attachments []db.Attachment
+
+	err = db.Database.Model(&db.Attachment{}).Where("word_id = ?", word.ID).Select("id", "url", "source").Find(&attachments).Error
+
+	if err != nil {
+		return fullWord{}, fmt.Errorf("error finding attachments: %w", err)
+	}
+
+	var fullWord = fullWord{
+		ID:          word.ID,
+		Word:        word.Word,
+		Meaning:     word.Meaning,
+		Category:    category,
+		Translation: word.Translation,
+		CreatedAt:   word.CreatedAt,
+		Attachments: attachments,
+	}
+
+	return fullWord, err
 }
 
 func (h Handler) addAttachmentService(id, bucketID string, files []attachment) ([]db.Attachment, error) {

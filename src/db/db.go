@@ -40,7 +40,7 @@ type Attachment struct {
 	URL    string `json:"url"`
 	Source string `json:"source"`
 	WordID uint   `json:"-"`
-	Word   Word   `json:"word" gorm:"foreignKey:WordID;references:id;constraint:OnDelete:CASCADE;"`
+	Word   Word   `json:"word,omitzero" gorm:"foreignKey:WordID;references:id;constraint:OnDelete:CASCADE;"`
 
 	CreatedAt time.Time `json:"created_at,omitzero"`
 }
