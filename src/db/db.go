@@ -13,7 +13,7 @@ var Database *gorm.DB
 
 type Admin struct {
 	ID       uint   `gorm:"primarykey" json:"id"`
-	Name     string `json:"name" gorm:"unique"`
+	Name     string `json:"name"`
 	Email    string `json:"email" gorm:"unique"`
 	Password string `json:"password"`
 
