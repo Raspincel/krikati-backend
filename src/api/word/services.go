@@ -210,6 +210,7 @@ type full_data struct {
 	ID          uint              `json:"id"`
 	Word        string            `json:"word"`
 	Meaning     string            `json:"meaning"`
+	Translation string            `json:"translation,omitempty"`
 	Attachments []full_attachment `json:"attachments,omitempty"`
 }
 
@@ -221,11 +222,12 @@ func (h Handler) getWordsService() map[string][]full_data {
 		Name         string `gorm:"column:category_name"`
 		Word         string `gorm:"column:word"`
 		Meaning      string `gorm:"column:meaning"`
+		Translation  string `gorm:"column:translation"`
 		URL          string `gorm:"column:url"`
 		Source       string `gorm:"column:source"`
 	}{}
 
-	db.Database.Model(&db.Category{}).Select("categories.id as category_id", "categories.name as category_name", "words.word", "words.meaning", "attachments.url", "attachments.source", "words.id as word_id", "attachments.id as attachment_id").Joins("INNER JOIN words ON words.category_id = categories.id").Joins("LEFT JOIN attachments ON attachments.word_id = words.id").Scan(&result)
+	db.Database.Model(&db.Category{}).Select("categories.id as category_id", "categories.name as category_name", "words.word", "words.meaning", "attachments.url", "attachments.source", "words.id as word_id", "attachments.id as attachment_id", "words.translation").Joins("INNER JOIN words ON words.category_id = categories.id").Joins("LEFT JOIN attachments ON attachments.word_id = words.id").Scan(&result)
 
 	d := make(map[string][]full_data)
 
@@ -244,6 +246,7 @@ func (h Handler) getWordsService() map[string][]full_data {
 				ID:          r.WordID,
 				Word:        r.Word,
 				Meaning:     r.Meaning,
+				Translation: r.Translation,
 				Attachments: []full_attachment{},
 			})
 		}
