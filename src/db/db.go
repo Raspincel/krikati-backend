@@ -46,11 +46,12 @@ type Attachment struct {
 }
 
 type Word struct {
-	ID         uint     `gorm:"primarykey" json:"id"`
-	Word       string   `json:"word"`
-	Meaning    string   `json:"meaning"`
-	Category   Category `json:"category" gorm:"foreignKey:CategoryID;references:ID;constraint:OnDelete:CASCADE;"`
-	CategoryID uint     `json:"-" gorm:"OnDelete:CASCADE;"`
+	ID          uint     `gorm:"primarykey" json:"id"`
+	Word        string   `json:"word"`
+	Meaning     string   `json:"meaning"`
+	Category    Category `json:"category" gorm:"foreignKey:CategoryID;references:ID;constraint:OnDelete:CASCADE;"`
+	CategoryID  uint     `json:"-" gorm:"OnDelete:CASCADE;"`
+	Translation string   `json:"translation,omitempty" gorm:"default:''"`
 
 	CreatedAt time.Time `json:"created_at,omitzero"`
 }
@@ -83,7 +84,6 @@ func Connect() {
 	pgDb.SetConnMaxLifetime(0)
 
 	err = d.AutoMigrate(&Admin{}, &Category{}, &Word{}, &Attachment{}, &Text{})
-	// fmt.Println("err", err)
 
 	fmt.Println("Connected to database")
 	Database = d

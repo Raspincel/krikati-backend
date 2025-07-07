@@ -22,13 +22,16 @@ type word struct {
 	Name        string       `json:"name" validate:"required"`
 	Meaning     string       `json:"meaning" validate:"required"`
 	CategoryID  uint         `json:"category_id" validate:"required"`
+	Translation string       `json:"translation"`
 	Attachments []attachment `json:"attachments"`
 	api.Constructable
 }
 
 type updateWord struct {
-	Name    string `json:"name,omitempty"`
-	Meaning string `json:"meaning,omitempty"`
+	Name        string `json:"name,omitempty"`
+	Meaning     string `json:"meaning,omitempty"`
+	CategoryID  uint   `json:"category_id,omitempty"`
+	Translation string `json:"translation,omitempty"`
 }
 
 type addAttachment struct {
@@ -54,7 +57,7 @@ func (w *addAttachment) SetFile(field, value string, file *multipart.FileHeader)
 }
 
 func (h updateWord) IsEmpty() bool {
-	return h.Name == "" && h.Meaning == ""
+	return h.Name == "" && h.Meaning == "" && h.CategoryID == 0
 }
 
 func (w *word) SetValue(field, value string) {
@@ -75,6 +78,10 @@ func (w *word) SetValue(field, value string) {
 
 		w.CategoryID = uint(val)
 	}
+
+	if field == "translation" {
+		w.Translation = value
+	}
 }
 
 func (w *word) SetFile(field, value string, file *multipart.FileHeader) {
@@ -89,7 +96,7 @@ func (h *Handler) RegisterRoutes() *http.ServeMux {
 	r := http.NewServeMux()
 
 	r.HandleFunc("POST /new", api.ValidateMultipartSchemaMiddleware[word](
-		[]string{"name", "meaning", "category_id"},
+		[]string{"name", "meaning", "category_id", "translation"},
 		api.MultipleMiddleware(
 			h.create,
 			api.RecoveryMiddleware,

@@ -35,7 +35,7 @@ func ValidateSchemaMiddleware[T Body](next http.HandlerFunc) http.HandlerFunc {
 		err = json.Unmarshal(data, &validation)
 
 		if err != nil {
-			http.Error(w, "{\"message\":\"Invalid request. Could not unmarshal body\"}", http.StatusBadRequest)
+			http.Error(w, fmt.Sprintf("{\"message\":\"Invalid request. Could not unmarshal body: %v\"}", err.Error()), http.StatusBadRequest)
 			return
 		}
 

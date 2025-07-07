@@ -75,7 +75,7 @@ func (h *Handler) update(w http.ResponseWriter, r *http.Request) {
 	id := r.Context().Value("word_id").(string)
 	body := r.Context().Value("body").(updateWord)
 
-	word, err := h.updateWordService(id, body.Name, body.Meaning)
+	word, err := h.updateWordService(id, body)
 
 	if err != nil {
 		http.Error(w, "{\"message\":\""+err.Error()+"\"}", http.StatusInternalServerError)

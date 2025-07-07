@@ -125,9 +125,10 @@ func (h Handler) deleteFilesService(files []attachment) {
 
 func (h Handler) createWordService(bucketID string, files []attachment, body word) (db.Word, error) {
 	w := db.Word{
-		Word:       body.Name,
-		Meaning:    body.Meaning,
-		CategoryID: body.CategoryID,
+		Word:        body.Name,
+		Meaning:     body.Meaning,
+		CategoryID:  body.CategoryID,
+		Translation: body.Translation,
 	}
 
 	err := db.Database.Transaction(func(tx *gorm.DB) error {
@@ -224,7 +225,7 @@ func (h Handler) getWordsService() map[string][]full_data {
 	return d
 }
 
-func (h Handler) updateWordService(id, name, meaning string) (db.Word, error) {
+func (h Handler) updateWordService(id string, w updateWord) (db.Word, error) {
 	var word db.Word
 
 	err := db.Database.Transaction(func(tx *gorm.DB) error {
@@ -236,13 +237,16 @@ func (h Handler) updateWordService(id, name, meaning string) (db.Word, error) {
 			return fmt.Errorf("error finding word: %w", err)
 		}
 
-		if name != "" {
-			word.Word = name
+		if w.Name != "" {
+			word.Word = w.Name
 		}
 
-		if meaning != "" {
-			word.Meaning = meaning
+		if w.Meaning != "" {
+			word.Meaning = w.Meaning
 		}
+
+		word.Translation = w.Translation
+		word.CategoryID = w.CategoryID
 
 		err = tx.Save(&word).Error
 		if err != nil {
