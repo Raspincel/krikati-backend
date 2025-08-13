@@ -11,6 +11,7 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - SUPABASE_API_URL=${SUPABASE_API_URL}
       - SUPABASE_API_KEY=${SUPABASE_API_KEY}
+    command: sh -c "echo 'ENV VARS:' && printenv && ./app"
     develop:
       watch:
         - path: .
