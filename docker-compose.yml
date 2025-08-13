@@ -5,7 +5,6 @@ services:
     build: .
     ports:
       - "3000:3000"
-    command: ["go", "run", "src/main.go"]
     develop:
       watch:
         - path: .
