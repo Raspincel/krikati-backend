@@ -18,6 +18,9 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	w.Write([]byte(`{"message":"account created"}`))
 }
 
 func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
