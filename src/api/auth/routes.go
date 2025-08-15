@@ -37,6 +37,7 @@ func (h *Handler) RegisterRoutes() *http.ServeMux {
 		h.register,
 		api.RecoveryMiddleware,
 		h.emailInIuseMiddleware,
+		api.AuthMiddleware,
 		api.CORSMiddleware,
 	)))
 
